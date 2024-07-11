@@ -11,9 +11,9 @@ main () {
 	readonly PRIMARY_LOGS_DIR="${PRIMARY_LOGS_DIR:-$(dirname "$THIS")/retroarch/playlists/logs}"
 	readonly SECONDARY_LOGS_DIR="${SECONDARY_LOGS_DIR:-${HOME:?}/.retroarch/playlists/logs}"
 
-	readonly RETROARCH_MERGE_LOGS_SCRIPT="${RETROARCH_MERGE_LOGS_SCRIPT:-${HOME:?}/Documents/Git/github.com/andrew-ls/retroarch-utils/src/merge-logs-dirs}"
+	readonly RETROARCH_MERGE_LOGS_DIRS_SCRIPT="${RETROARCH_MERGE_LOGS_DIRS_SCRIPT:-${HOME:?}/Documents/Git/github.com/andrew-ls/retroarch-utils/src/merge-logs-dirs}"
 
-	exec "$RETROARCH_MERGE_LOGS_SCRIPT" "$PRIMARY_LOGS_DIR" "$SECONDARY_LOGS_DIR"
+	exec "$RETROARCH_MERGE_LOGS_DIRS_SCRIPT" "$PRIMARY_LOGS_DIR" "$SECONDARY_LOGS_DIR"
 }
 
 #-------------------------------------------------------------------------------

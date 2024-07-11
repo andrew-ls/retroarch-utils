@@ -1,0 +1,33 @@
+#!/bin/sh
+
+readonly THIS="$(
+	exec 2>/dev/null
+	realpath -- "$0" || readlink -f -- "$0" || printf -- %s "$0"
+)"
+
+#-------------------------------------------------------------------------------
+
+main () {
+	readonly RETROARCH_COMPARE_ROMS_DIRS_SCRIPT="${RETROARCH_COMPARE_ROMS_DIRS_SCRIPT:-${HOME:?}/Documents/Git/github.com/andrew-ls/retroarch-utils/src/compare-roms-dirs}"
+
+	export DIFF="${DIFF:-$(
+		if test "$(command -v meld)"; then
+			echo meld
+		elif test "$(command -v flatpak)" \
+			&& test "$(
+				flatpak list --columns=application \
+				| grep -F org.gnome.meld
+			)"
+		then
+			echo flatpak run org.gnome.meld
+		else
+			echo diff
+		fi
+	)}"
+
+	exec "$RETROARCH_COMPARE_ROMS_DIRS_SCRIPT" "$@"
+}
+
+#-------------------------------------------------------------------------------
+
+main "$@"

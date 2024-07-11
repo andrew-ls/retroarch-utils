@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+# compare-roms-dirs
+#
+# Usage: compare-roms-dirs PRIMARY_DIRECTORY SECONDARY_DIRECTORY
+#
+# Compares two ROMs directories, showing missing entries.
+#
+# Designed for a hierarchy whereby ROMs are contained within their own
+# subdirectory, e.g.:
+#
+#     PRIMARY_ROOT/
+#         rom1/
+#         rom2/
+#     SECONDARY_ROOT/
+#         rom1/
+#         rom3/
+#
+# Options: (None)
+#
+# Environment:
+#   DIFF='[DIFF]'
+#     Program used to diff.
+#   EXCLUDE='[EXCLUDE]:[EXCLUDE]...'
+#     Colon-delimited list of ROMs to exclude.
+
+readonly THIS="$(
+	exec 2>/dev/null
+	realpath -- "$0" || readlink -f -- "$0" || printf -- %s "$0"
+)"
+
+#-------------------------------------------------------------------------------
+
+main () {
+	readonly PRIMARY_ROMS_DIR="${1:?}"
+	readonly SECONDARY_ROMS_DIR="${2:?}"
+
+	readonly EXCLUDE_CMD="$(
+		IFS=:
+		if test "$EXCLUDE"; then
+			for exclude in $EXCLUDE; do
+				printf -- '-and -not -name %s\n' "$exclude"
+			done
+		fi
+	)"
+
+	${DIFF:-diff} <(
+			find "$SECONDARY_ROMS_DIR" -maxdepth 1 -mindepth 1 -type d \
+				-not -name . \
+				-and -not -name '.emulationstation' \
+				-and -not -name 'media' \
+				$EXCLUDE_CMD \
+			| sed "s:^$(escape "$SECONDARY_ROMS_DIR")/::" \
+			| LC_ALL=C sort
+		) <(
+			find "$PRIMARY_ROMS_DIR" -maxdepth 1 -mindepth 1 -type d \
+				-not -name . \
+				-and -not -name 'videos' \
+				-and -not -name 'images' \
+				$EXCLUDE_CMD \
+			| sed "s:^$(escape "$PRIMARY_ROMS_DIR")/::" \
+			| LC_ALL=C sort
+		)
+}
+
+#-------------------------------------------------------------------------------
+
+escape () {
+    if test "${1}"; then
+        printf '%s\n' "${1}";
+    else
+        cat;
+    fi | sed -e 's/[^^]/[&]/g' -e 's/\^/\\^/g'
+}
+
+#-------------------------------------------------------------------------------
+
+main "$@"

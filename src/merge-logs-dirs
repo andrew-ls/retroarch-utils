@@ -12,6 +12,8 @@
 # in the primary directory is updated to match.
 #
 # Options: (None)
+#
+# Environment: (None)
 
 readonly THIS="$(
 	exec 2>/dev/null
