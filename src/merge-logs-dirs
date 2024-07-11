@@ -141,9 +141,9 @@ seconds_to_time () {(
 
 time_to_seconds () {(
 	# input: HH:MM:SS
-	readonly hours="$(printf '%s\n' "${*:?}" | cut -d : -f 1)"
-	readonly minutes="$(printf '%s\n' "${*:?}" | cut -d : -f 2)"
-	readonly seconds="$(printf '%s\n' "${*:?}" | cut -d : -f 3)"
+	readonly hours="$(printf '%s\n' "${*:?}" | cut -d : -f 1 | sed 's/^0*//')"
+	readonly minutes="$(printf '%s\n' "${*:?}" | cut -d : -f 2 | sed 's/^0*//')"
+	readonly seconds="$(printf '%s\n' "${*:?}" | cut -d : -f 3 | sed 's/^0*//')"
 	printf '%s\n' "$(( (hours * 3600) + (minutes * 60) + seconds ))"
 )}
 
