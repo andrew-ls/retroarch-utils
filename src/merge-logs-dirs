@@ -54,24 +54,24 @@ main () {
 			printf '%s\n' 0 >"$primary_log.last-sync.runtime"
 		fi
 
-		readonly primary_runtime="$(
+		primary_runtime="$(
 			json_get_key_value "$primary_log" runtime
 		)"
-		readonly primary_runtime_seconds="$(
+		primary_runtime_seconds="$(
 			time_to_seconds "$primary_runtime"
 		)"
 
-		readonly lastsync_runtime="$(
+		lastsync_runtime="$(
 			cat "$primary_log.last-sync.runtime"
 		)"
-		readonly lastsync_runtime_seconds="$(
+		lastsync_runtime_seconds="$(
 			time_to_seconds "$lastsync_runtime"
 		)"
 
-		readonly secondary_runtime="$(
+		secondary_runtime="$(
 			json_get_key_value "$secondary_log" runtime
 		)"
-		readonly secondary_runtime_seconds="$(
+		secondary_runtime_seconds="$(
 			time_to_seconds "$secondary_runtime"
 		)"
 
