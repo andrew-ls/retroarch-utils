@@ -45,20 +45,20 @@ main () {
 	)"
 
 	${DIFF:-diff} <(
-			find "$SECONDARY_ROMS_DIR" -maxdepth 1 -mindepth 1 -type d \
-				-not -name . \
-				-and -not -name '.emulationstation' \
-				-and -not -name 'media' \
-				$EXCLUDE_CMD \
-			| sed "s:^$(escape "$SECONDARY_ROMS_DIR")/::" \
-			| LC_ALL=C sort
-		) <(
 			find "$PRIMARY_ROMS_DIR" -maxdepth 1 -mindepth 1 -type d \
 				-not -name . \
 				-and -not -name 'videos' \
 				-and -not -name 'images' \
 				$EXCLUDE_CMD \
 			| sed "s:^$(escape "$PRIMARY_ROMS_DIR")/::" \
+			| LC_ALL=C sort
+		) <(
+			find "$SECONDARY_ROMS_DIR" -maxdepth 1 -mindepth 1 -type d \
+				-not -name . \
+				-and -not -name '.emulationstation' \
+				-and -not -name 'media' \
+				$EXCLUDE_CMD \
+			| sed "s:^$(escape "$SECONDARY_ROMS_DIR")/::" \
 			| LC_ALL=C sort
 		)
 }
