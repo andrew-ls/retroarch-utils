@@ -1,0 +1,150 @@
+#!/bin/sh
+
+# merge-logs-dirs
+#
+# Usage: merge-logs-dirs PRIMARY_DIRECTORY SECONDARY_DIRECTORY
+#
+# Merges two RetroArch logs directories (:/playlists/logs).
+#
+# Currently this just tracks the runtimes in the primary directory. If runtime
+# has increased since the last sync, the difference is added to the runtime of
+# the matching log (if it exists) in the secondary directory, then the runtime
+# in the primary directory is updated to match.
+#
+# Options: (None)
+
+readonly THIS="$(
+	exec 2>/dev/null
+	realpath -- "$0" || readlink -f -- "$0" || printf -- %s "$0"
+)"
+
+#-------------------------------------------------------------------------------
+
+main () {
+	readonly PRIMARY_LOGS_DIR="${1:?}"
+	readonly SECONDARY_LOGS_DIR="${2:?}"
+
+	if ! test -d "$PRIMARY_LOGS_DIR"; then
+		log error Directory "$PRIMARY_LOGS_DIR" not found
+		exit 2
+	fi
+	if ! test -d "$SECONDARY_LOGS_DIR"; then
+		log error Directory "$SECONDARY_LOGS_DIR" not found
+		exit 2
+	fi
+
+	cd "$PRIMARY_LOGS_DIR" || {
+		log error Failed to change to directory "$PRIMARY_LOGS_DIR"
+		exit 2
+	}
+
+	for primary_log in *.lrtl; do
+		secondary_log="$SECONDARY_LOGS_DIR/$(basename "$primary_log")"
+
+		if ! test -f "$secondary_log"; then
+			log info Skipping "$(basename "$primary_log" .lrtl)", \
+				"$secondary_log" does not exist...
+			continue
+		fi
+		if ! test -f "$primary_log.last-sync.runtime"; then
+			log info Syncing "$(basename "$primary_log" .lrtl)" \
+				for the first time...
+			printf '%s\n' 0 >"$primary_log.last-sync.runtime"
+		fi
+
+		readonly primary_runtime="$(
+			json_get_key_value "$primary_log" runtime
+		)"
+		readonly primary_runtime_seconds="$(
+			time_to_seconds "$primary_runtime"
+		)"
+
+		readonly lastsync_runtime="$(
+			cat "$primary_log.last-sync.runtime"
+		)"
+		readonly lastsync_runtime_seconds="$(
+			time_to_seconds "$lastsync_runtime"
+		)"
+
+		readonly secondary_runtime="$(
+			json_get_key_value "$secondary_log" runtime
+		)"
+		readonly secondary_runtime_seconds="$(
+			time_to_seconds "$secondary_runtime"
+		)"
+
+		unset -v new_runtime new_runtime_seconds_diff
+		if test "$primary_runtime_seconds" -gt "$lastsync_runtime_seconds"; then
+			new_runtime_seconds_diff="$((
+				primary_runtime_seconds - lastsync_runtime_seconds
+			))"
+			new_runtime="$(seconds_to_time "$((
+				secondary_runtime_seconds + new_runtime_seconds_diff
+			))")"
+		fi
+
+		if test "$new_runtime" && test "$new_runtime_seconds_diff"; then
+			log info Adding "$new_runtime_seconds_diff" seconds to runtime for \
+				"$(basename "$primary_log" .lrtl)"...
+			json_update_key_value "$primary_log" \
+				runtime "$new_runtime"
+			json_update_key_value "$secondary_log" \
+				runtime "$new_runtime"
+			log info Runtime for "$(basename "$primary_log" .lrtl)" is now \
+				"$new_runtime"
+		else
+			log info Skipping "$(basename "$primary_log" .lrtl)", \
+				runtime has not changed...
+		fi
+
+		printf '%s\n' "${new_runtime:-$primary_runtime}" \
+			>"$primary_log.last-sync.runtime"
+	done
+}
+
+#-------------------------------------------------------------------------------
+
+json_get_key_value () {(
+	readonly file="${1:?}"; shift
+	readonly key="${*:?}"
+	sed -n <"$file" \
+		's/^[[:space:]]*"'"$key"'":[[:space:]]*"\([^"]\{1,\}\)".*/\1/p'
+)}
+
+json_update_key_value () {(
+	readonly file="${1:?}"; shift
+	readonly key="${1:?}"; shift
+	readonly value="${*:?}"
+	sed <"$file" \
+		's/\(^[[:space:]]*"'"$key"'":[[:space:]]*"\)[^"]\{1,\}\(".*\)/\1'"$value"'\2/' \
+		>"$file.new" \
+	&& mv -f "$file.new" "$file"
+)}
+
+log () {(
+	readonly level="${1:?}"; shift
+	readonly message="${*:?}"
+	printf '%s: %s: %s\n' \
+		"$(basename "$THIS" .sh)" \
+		"$level" \
+		"$message"
+)}
+
+seconds_to_time () {(
+	readonly hours="$(( "${*:?}" / 3600 ))"
+	readonly minutes="$(( ("${*:?}" % 3600) / 60 ))"
+	readonly seconds="$(( ("${*:?}" % 3600) % 60 ))"
+	printf '%d:%02d:%02d\n' "$hours" "$minutes" "$seconds"
+)}
+
+time_to_seconds () {(
+	# input: HH:MM:SS
+	readonly hours="$(printf '%s\n' "${*:?}" | cut -d : -f 1)"
+	readonly minutes="$(printf '%s\n' "${*:?}" | cut -d : -f 2)"
+	readonly seconds="$(printf '%s\n' "${*:?}" | cut -d : -f 3)"
+	printf '%s\n' "$(( (hours * 3600) + (minutes * 60) + seconds ))"
+)}
+
+#-------------------------------------------------------------------------------
+
+main "$@"
